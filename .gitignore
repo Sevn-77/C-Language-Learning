@@ -8,13 +8,15 @@
 *.dylib
 *.a
 *.lib
+*.pdb
+*.ilk
 /score_manager
 /score_manager.exe
 
 # Local student records and temporary saves
-/students.csv
-/students.csv.tmp
-/students*.csv.bak
+students.csv
+students.csv.tmp
+students*.csv.bak
 
 # Local secrets and scratch files
 .env
@@ -27,10 +29,11 @@
 # Python test artifacts
 __pycache__/
 *.py[cod]
+/tests/.tmp/
 
 # Editor and operating-system files
 .vscode/
 .idea/
+.vs/
 .DS_Store
 Thumbs.db
-

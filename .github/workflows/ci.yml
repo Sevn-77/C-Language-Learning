@@ -24,4 +24,3 @@ jobs:
         run: gcc -std=c11 -Wall -Wextra -Wpedantic -O2 student-management/main.c -o score_manager
       - name: Run CLI tests
         run: python3 -m unittest discover -s tests -v
-

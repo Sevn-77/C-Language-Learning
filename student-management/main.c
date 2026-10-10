@@ -1,14 +1,21 @@
 #include <ctype.h>
 #include <errno.h>
+#include <limits.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
+
 #define MAX_STUDENTS 200
 #define FIELD_LENGTH 50
 #define SUBJECT_COUNT 3
 #define DATA_FILE "students.csv"
+#define TEMP_DATA_FILE "students.csv.tmp"
 
 typedef struct {
     char id[FIELD_LENGTH];
@@ -39,16 +46,23 @@ static int readLine(const char *prompt, char *buffer, size_t size)
     if (length > 0 && buffer[length - 1] == '\n') {
         buffer[length - 1] = '\0';
     } else if (!feof(stdin)) {
-        clearInputLine();
-        printf("输入过长，请控制在 %d 个字符以内。\n", (int)size - 1);
-        return 0;
+        int nextCharacter = getchar();
+        if (nextCharacter != '\n' && nextCharacter != EOF) {
+            clearInputLine();
+            printf("输入过长，请控制在 %d 个字节以内。\n", (int)size - 1);
+            return -1;
+        }
     }
     return 1;
 }
 
 static int readRequiredText(const char *prompt, char *buffer, size_t size)
 {
-    while (readLine(prompt, buffer, size)) {
+    int status;
+    while ((status = readLine(prompt, buffer, size)) != 0) {
+        if (status < 0) {
+            continue;
+        }
         if (buffer[0] == '\0') {
             printf("内容不能为空，请重新输入。\n");
             continue;
@@ -67,7 +81,11 @@ static int readNumber(const char *prompt, double minimum, double maximum, double
     char buffer[FIELD_LENGTH];
     char *end;
     double parsed;
-    while (readLine(prompt, buffer, sizeof(buffer))) {
+    int status;
+    while ((status = readLine(prompt, buffer, sizeof(buffer))) != 0) {
+        if (status < 0) {
+            continue;
+        }
         errno = 0;
         parsed = strtod(buffer, &end);
         while (isspace((unsigned char)*end)) {
@@ -100,8 +118,12 @@ static int readInteger(const char *prompt, int minimum, int maximum)
     char buffer[FIELD_LENGTH];
     char *end;
     long choice;
-    if (!readLine(prompt, buffer, sizeof(buffer))) {
+    int status = readLine(prompt, buffer, sizeof(buffer));
+    if (status == 0) {
         return -1;
+    }
+    if (status < 0) {
+        return 0;
     }
     errno = 0;
     choice = strtol(buffer, &end, 10);
@@ -111,8 +133,9 @@ static int readInteger(const char *prompt, int minimum, int maximum)
     if (buffer[0] == '\0' || errno != 0 || *end != '\0') {
         return 0;
     }
-    if (choice < minimum || choice > maximum) {
-        return (int)choice;
+    if (choice < minimum || choice > maximum || choice > (long)INT_MAX ||
+        choice < (long)INT_MIN) {
+        return 0;
     }
     return (int)choice;
 }
@@ -145,10 +168,10 @@ static int findStudentById(const char *id)
 
 static int saveStudents(void)
 {
-    FILE *file = fopen(DATA_FILE, "w");
+    FILE *file = fopen(TEMP_DATA_FILE, "w");
     int i;
     if (file == NULL) {
-        printf("无法保存数据文件 %s。\n", DATA_FILE);
+        printf("无法创建临时数据文件 %s。\n", TEMP_DATA_FILE);
         return 0;
     }
     for (i = 0; i < studentCount; i++) {
@@ -157,14 +180,30 @@ static int saveStudents(void)
                     students[i].scores[0], students[i].scores[1],
                     students[i].scores[2]) < 0) {
             fclose(file);
-            printf("写入数据文件失败。\n");
+            remove(TEMP_DATA_FILE);
+            printf("写入临时数据文件失败。\n");
             return 0;
         }
     }
     if (fclose(file) != 0) {
-        printf("关闭数据文件时发生错误。\n");
+        remove(TEMP_DATA_FILE);
+        printf("关闭临时数据文件时发生错误。\n");
         return 0;
     }
+#ifdef _WIN32
+    if (!MoveFileExA(TEMP_DATA_FILE, DATA_FILE,
+                     MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+        remove(TEMP_DATA_FILE);
+        printf("替换数据文件 %s 失败。\n", DATA_FILE);
+        return 0;
+    }
+#else
+    if (rename(TEMP_DATA_FILE, DATA_FILE) != 0) {
+        remove(TEMP_DATA_FILE);
+        printf("替换数据文件 %s 失败。\n", DATA_FILE);
+        return 0;
+    }
+#endif
     return 1;
 }
 
@@ -178,12 +217,14 @@ static void loadStudents(void)
     }
     while (fgets(line, sizeof(line), file) != NULL) {
         Student student;
-        int fields = sscanf(line, "%49[^,],%49[^,],%49[^,],%lf,%lf,%lf",
+        char extra;
+        int fields = sscanf(line, "%49[^,],%49[^,],%49[^,],%lf,%lf,%lf %c",
                             student.id, student.name, student.className,
                             &student.scores[0], &student.scores[1],
-                            &student.scores[2]);
+                            &student.scores[2], &extra);
         if (fields != 6 || student.id[0] == '\0' || student.name[0] == '\0' ||
-            student.className[0] == '\0' || studentCount >= MAX_STUDENTS ||
+            student.className[0] == '\0' ||
+            studentCount >= MAX_STUDENTS ||
             !isfinite(student.scores[0]) || student.scores[0] < 0 || student.scores[0] > 100 ||
             !isfinite(student.scores[1]) ||
             student.scores[1] < 0 || student.scores[1] > 100 ||
@@ -241,6 +282,8 @@ static void addStudent(void)
     students[studentCount++] = student;
     if (saveStudents()) {
         printf("学生信息已添加并保存。\n");
+    } else {
+        studentCount--;
     }
 }
 
@@ -285,6 +328,7 @@ static void updateScore(void)
     double score;
     int index;
     int subjectChoice;
+    double oldScore;
     if (!readRequiredText("请输入要修改成绩的学生学号：", id, sizeof(id))) {
         printf("输入结束，已取消修改。\n");
         return;
@@ -304,10 +348,13 @@ static void updateScore(void)
         printf("输入结束，已取消修改。\n");
         return;
     }
+    oldScore = students[index].scores[subjectChoice - 1];
     students[index].scores[subjectChoice - 1] = score;
     if (saveStudents()) {
         printf("%s 的%s成绩已更新并保存。\n",
                students[index].name, subjects[subjectChoice - 1]);
+    } else {
+        students[index].scores[subjectChoice - 1] = oldScore;
     }
 }
 
@@ -336,6 +383,7 @@ static void calculateAverages(void)
 static void deleteStudent(void)
 {
     char id[FIELD_LENGTH];
+    Student removedStudent;
     int index;
     int i;
     if (!readRequiredText("请输入要删除的学生学号：", id, sizeof(id))) {
@@ -347,12 +395,19 @@ static void deleteStudent(void)
         printf("没有找到该学号的学生。\n");
         return;
     }
+    removedStudent = students[index];
     for (i = index; i < studentCount - 1; i++) {
         students[i] = students[i + 1];
     }
     studentCount--;
     if (saveStudents()) {
         printf("学生记录已删除并保存。\n");
+    } else {
+        for (i = studentCount; i > index; i--) {
+            students[i] = students[i - 1];
+        }
+        students[index] = removedStudent;
+        studentCount++;
     }
 }
 
@@ -396,4 +451,3 @@ int main(void)
     }
     return 0;
 }
-
