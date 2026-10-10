@@ -1,0 +1,36 @@
+# Compiled C programs and object files
+*.exe
+*.out
+*.o
+*.obj
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+/score_manager
+/score_manager.exe
+
+# Local student records and temporary saves
+/students.csv
+/students.csv.tmp
+/students*.csv.bak
+
+# Local secrets and scratch files
+.env
+.env.*
+!.env.example
+*.tmp
+*.bak
+*.swp
+
+# Python test artifacts
+__pycache__/
+*.py[cod]
+
+# Editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
