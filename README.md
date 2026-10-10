@@ -28,7 +28,7 @@
 ### Windows PowerShell
 
 ```powershell
-gcc -std=c11 -Wall -Wextra -Wpedantic -O2 main.c -o score_manager.exe
+gcc -std=c11 -Wall -Wextra -Wpedantic -O2 student-management/main.c -o score_manager.exe
 chcp 65001
 ./score_manager.exe
 ```
@@ -36,7 +36,7 @@ chcp 65001
 ### macOS / Linux
 
 ```sh
-gcc -std=c11 -Wall -Wextra -Wpedantic -O2 main.c -o score_manager
+gcc -std=c11 -Wall -Wextra -Wpedantic -O2 student-management/main.c -o score_manager
 ./score_manager
 ```
 
