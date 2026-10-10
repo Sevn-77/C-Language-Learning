@@ -2,7 +2,7 @@
 
 ## 环境与状态
 
-- 测试对象：`main.c` 中的 C 语言学生成绩管理系统。
+- 测试对象：`student-management/main.c` 中的 C 语言学生成绩管理系统。
 - 计划编译器：GCC，命令为 `gcc -std=c11 -Wall -Wextra -Wpedantic -O2`。
 - 自动化用例：见 [`tests/test_cli.py`](../tests/test_cli.py)。
 - 状态说明：每项结果均基于本次实际命令输出；没有执行的用例标记为“未测试”。
