@@ -1,0 +1,27 @@
+name: C build and CLI tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Check compiler and Python
+        run: |
+          gcc --version
+          python3 --version
+      - name: Compile with warnings enabled
+        run: gcc -std=c11 -Wall -Wextra -Wpedantic -O2 student-management/main.c -o score_manager
+      - name: Run CLI tests
+        run: python3 -m unittest discover -s tests -v
+
