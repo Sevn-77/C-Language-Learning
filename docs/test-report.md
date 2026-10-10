@@ -61,3 +61,7 @@ Linux / macOS（需要 GCC）执行：
 ```sh
 python3 -m unittest discover -s tests -v
 ```
+
+## GitHub Actions 验证
+
+提交 `3e359658c634eaee1011b7acc99bbba0086b26fc` 于 2026-10-10 在 GitHub Actions 的 Ubuntu runner 上完成验证：GCC 编译步骤成功，Python 3.12.3 执行 `python3 -m unittest discover -s tests -v`，10 个测试通过、0 个失败、0 个错误、0 个跳过。 [工作流运行记录](https://github.com/Sevn-77/C-Language-Learning/actions/runs/38059102118)。

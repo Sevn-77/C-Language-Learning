@@ -61,7 +61,7 @@ python -m unittest discover -s tests -v
 
 ## 持续集成
 
-`.github/workflows/ci.yml` 已配置 GitHub Actions，在 Ubuntu 上使用 GCC 编译并运行 Python CLI 测试。当前工作目录不是 Git 仓库，本次没有触发或验证远程 GitHub Actions。
+`.github/workflows/ci.yml` 已配置 GitHub Actions，在 Ubuntu 上使用 GCC 编译并运行 Python CLI 测试。提交 `3e35965` 的工作流已成功完成：编译通过，10 个 CLI 测试通过。[查看运行记录](https://github.com/Sevn-77/C-Language-Learning/actions/runs/38059102118)。
 
 ## 数据和隐私
 
